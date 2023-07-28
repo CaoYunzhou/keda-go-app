@@ -1,0 +1,33 @@
+apiVersion: keda.sh/v1alpha1
+kind: ScaledObject
+metadata:
+  name: keda-go-app-prometheus-scaledobject
+spec:
+  scaleTargetRef:
+    name: keda-go-app
+  pollingInterval: 15
+  cooldownPeriod: 30
+  minReplicaCount: 1
+  maxReplicaCount: 20
+  advanced:
+    horizontalPodAutoscalerConfig:
+      behavior:
+        scaleDown:
+          stabilizationWindowSeconds: 30
+          policies:
+            - type: Percent
+              value: 50
+              periodSeconds: 30
+        scaleUp:
+          stabilizationWindowSeconds: 0
+          policies:
+            - type: Percent
+              value: 50
+              periodSeconds: 10
+  triggers:
+    - type: prometheus
+      metadata:
+        serverAddress: http://prometheus-operated.monitoring.svc.cluster.local:9090
+        metricName: http_requests_total
+        threshold: "10"
+        query: sum(rate(http_requests[1m]))

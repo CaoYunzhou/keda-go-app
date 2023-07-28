@@ -1,0 +1,23 @@
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  labels:
+    app: ack-prometheus-operator-prometheus
+    chart: ack-prometheus-operator-12.0.0
+    heritage: Helm
+    release: ack-prometheus-operator
+  name: repo-prometheus-operator-prometheus-keda-go-app
+  namespace: monitoring
+spec:
+  endpoints:
+  - path: /metrics
+    port: http 
+  namespaceSelector:
+    matchNames:
+    - yunzhou-demo
+  selector:
+    matchExpressions:
+    - key: app
+      operator: In
+      values:
+      - keda-go-app

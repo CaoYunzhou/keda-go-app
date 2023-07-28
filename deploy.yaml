@@ -1,0 +1,91 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: keda-go-app
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: keda-go-app
+  template:
+    metadata:
+      annotations:
+        prometheus.io/port: "80"
+        prometheus.io/scrape: "true"
+        prometheus.io/path: "/metrics"
+      labels:
+        app: keda-go-app
+    spec:
+      containers:
+        - image: caoyunzhou/keda-go-app
+          name: keda-go-app
+          imagePullPolicy: Always
+          ports:
+            - name: http
+              containerPort: 80
+          env:
+            - name: POD_NAMESPACE
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace
+            - name: POD_IP
+              valueFrom:
+                fieldRef:
+                  fieldPath: status.podIP
+            - name: POD_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name
+            - name: POD_ID
+              valueFrom:
+                fieldRef:
+                  apiVersion: v1
+                  fieldPath: metadata.uid
+          livenessProbe:
+            failureThreshold: 3
+            httpGet:
+              path: /metrics
+              port: 80
+              scheme: HTTP
+            initialDelaySeconds: 30
+            periodSeconds: 5
+            successThreshold: 1
+            timeoutSeconds: 2
+          readinessProbe:
+            failureThreshold: 30
+            httpGet:
+              path: /metrics
+              port: 80
+              scheme: HTTP
+            initialDelaySeconds: 30
+            periodSeconds: 3
+            successThreshold: 2
+            timeoutSeconds: 2
+          resources:
+            limits:
+              cpu: 2048m
+              memory: 4Gi
+            requests:
+              cpu: 300m
+              memory: 1Gi
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: keda-go-app
+  annotations:
+    prometheus.io/scrape: "true" # Annotation，用于自发现
+    prometheus.io/port: "80"
+    prometheus.io/path: "/metrics"
+  labels:
+    app: keda-go-app
+spec:
+  type: ClusterIP
+  selector:
+    app: keda-go-app
+  ports:
+    - name: http
+      port: 80
+      protocol: TCP
+      targetPort: 80
